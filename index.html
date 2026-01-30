@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube曲リクエスト オーバーレイ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --chroma-key: #00ff00;
+            --bg-dark: #1a1a2e;
+            --accent-hot: #ff006e;
+            --accent-cool: #00f5ff;
+            --text-light: #ffffff;
+            --text-dim: #a0a0b0;
+            --shadow-intense: 0 8px 32px rgba(0, 0, 0, 0.8);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background: var(--chroma-key);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* モード切り替え：コントロールパネル表示時は背景をダーク */
+        body.control-mode {
+            background: var(--bg-dark);
+        }
+
+        /* オーバーレイモード：背景をクロマキーグリーン */
+        body.overlay-mode {
+            background: var(--chroma-key);
+        }
+
+        /* コントロールパネル */
+        #control-panel {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 30px;
+            background: linear-gradient(135deg, #2a2a4e 0%, #1a1a2e 100%);
+            border-radius: 16px;
+            box-shadow: var(--shadow-intense);
+            display: none;
+        }
+
+        body.control-mode #control-panel {
+            display: block;
+        }
+
+        h1 {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 2.5rem;
+            color: var(--accent-hot);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .subtitle {
+            color: var(--text-dim);
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: var(--text-light);
+            margin-bottom: 8px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 14px 18px;
+            font-size: 1rem;
+            font-family: 'Noto Sans JP', sans-serif;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--text-light);
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent-cool);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 4px rgba(0, 245, 255, 0.1);
+        }
+
+        input[type="text"]::placeholder {
+            color: var(--text-dim);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1;
+            min-width: 140px;
+            padding: 14px 24px;
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        button:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        button span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, var(--accent-hot) 0%, #d90058 100%);
+            color: white;
+        }
+
+        .btn-start:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(255, 0, 110, 0.4);
+        }
+
+        .btn-stop {
+            background: linear-gradient(135deg, #666 0%, #444 100%);
+            color: white;
+        }
+
+        .btn-stop:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        .btn-clear {
+            background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+            color: white;
+        }
+
+        .btn-clear:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(255, 68, 68, 0.4);
+        }
+
+        .btn-overlay {
+            background: linear-gradient(135deg, var(--accent-cool) 0%, #00d4ff 100%);
+            color: #1a1a2e;
+        }
+
+        .btn-overlay:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 245, 255, 0.4);
+        }
+
+        #status {
+            margin-top: 24px;
+            padding: 16px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            border-left: 4px solid var(--accent-cool);
+        }
+
+        .status-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-light);
+            margin: 6px 0;
+            font-size: 0.9rem;
+        }
+
+        .status-label {
+            color: var(--text-dim);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+        }
+
+        .status-value {
+            font-weight: 700;
+            color: var(--accent-cool);
+        }
+
+        .status-value.active {
+            color: var(--accent-hot);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        /* オーバーレイ表示エリア */
+        #overlay-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            padding: 40px;
+        }
+
+        body.overlay-mode #overlay-container {
+            display: block;
+        }
+
+        #requests {
+            list-style: none;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .request-item {
+            background: linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(42, 42, 78, 0.95) 100%);
+            margin: 16px 0;
+            padding: 20px 24px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+            border-left: 6px solid var(--accent-hot);
+            animation: slideIn 0.4s ease-out;
+            transition: all 0.3s ease;
+        }
+
+        .request-item:hover {
+            transform: translateX(8px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .request-content {
+            flex: 1;
+        }
+
+        .song-text {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 1.8rem;
+            color: var(--text-light);
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .author-text {
+            font-size: 1rem;
+            color: var(--text-dim);
+            font-weight: 400;
+        }
+
+        .request-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-done, .btn-undo-single {
+            padding: 10px 20px;
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-done {
+            background: linear-gradient(135deg, #00ff88 0%, #00cc66 100%);
+            color: #1a1a2e;
+        }
+
+        .btn-done:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0, 255, 136, 0.4);
+        }
+
+        .btn-undo-single {
+            background: linear-gradient(135deg, #ffaa00 0%, #ff8800 100%);
+            color: white;
+        }
+
+        .btn-undo-single:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(255, 170, 0, 0.4);
+        }
+
+        /* 空の状態メッセージ */
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--text-dim);
+        }
+
+        .empty-state .icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .empty-state p {
+            font-size: 1.2rem;
+            font-family: 'Archivo Black', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* モード切り替えボタン（オーバーレイモード時に表示） */
+        #mode-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            background: rgba(26, 26, 46, 0.9);
+            border: 2px solid var(--accent-cool);
+            border-radius: 8px;
+            color: var(--text-light);
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: none;
+            z-index: 1000;
+        }
+
+        body.overlay-mode #mode-toggle {
+            display: block;
+        }
+
+        #mode-toggle:hover {
+            background: var(--accent-cool);
+            color: #1a1a2e;
+            transform: scale(1.05);
+        }
+
+        /* エラーメッセージ */
+        .error-message {
+            background: rgba(255, 68, 68, 0.2);
+            border: 2px solid #ff4444;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+            color: #ff8888;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+            animation: shake 0.5s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        /* ローディングアニメーション */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: var(--accent-cool);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* レスポンシブ */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .song-text {
+                font-size: 1.4rem;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+                min-height: 48px; /* タッチ操作に最適 */
+            }
+
+            #control-panel {
+                margin: 20px;
+                padding: 20px;
+            }
+
+            .request-item {
+                padding: 16px;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .request-content {
+                width: 100%;
+                margin-bottom: 12px;
+            }
+
+            .request-actions {
+                width: 100%;
+                justify-content: stretch;
+            }
+
+            .btn-done, .btn-undo-single {
+                flex: 1;
+                min-height: 44px; /* タッチ操作に最適 */
+                font-size: 0.9rem;
+            }
+
+            #overlay-container {
+                padding: 20px 10px;
+            }
+
+            #mode-toggle {
+                top: 10px;
+                right: 10px;
+                padding: 10px 20px;
+                font-size: 0.75rem;
+            }
+
+            input[type="text"] {
+                font-size: 16px; /* iOSのズーム防止 */
+            }
+
+            .author-text {
+                font-size: 0.9rem;
+            }
+
+            .status-line {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+            }
+        }
+
+        /* 超小型スマホ対応 */
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .song-text {
+                font-size: 1.2rem;
+            }
+
+            #control-panel {
+                margin: 10px;
+                padding: 16px;
+            }
+        }
+
+        /* タッチデバイス用のホバーエフェクト無効化 */
+        @media (hover: none) {
+            button:hover::before {
+                width: 0;
+                height: 0;
+            }
+
+            .request-item:hover {
+                transform: none;
+            }
+
+            button:active {
+                transform: scale(0.95);
+            }
+        }
+    </style>
+</head>
+<body class="control-mode">
+    <!-- コントロールパネル -->
+    <div id="control-panel">
+        <h1>🎵 Request Overlay</h1>
+        <p class="subtitle">YouTube配信の曲リクエストを自動抽出してオーバーレイ表示</p>
+
+        <div class="input-group">
+            <label for="videoUrl">配信URL</label>
+            <input type="text" id="videoUrl" placeholder="https://www.youtube.com/watch?v=... を貼り付け">
+        </div>
+
+        <div class="input-group">
+            <label for="commandPrefix">コマンド形式（デフォルト: #req）</label>
+            <input type="text" id="commandPrefix" value="#req" placeholder="#req">
+        </div>
+
+        <div class="button-group">
+            <button class="btn-start" onclick="startMonitoring()"><span>🚀 監視開始</span></button>
+            <button class="btn-stop" onclick="stopMonitoring()"><span>⏸️ 停止</span></button>
+            <button class="btn-clear" onclick="clearAll()"><span>🗑️ 全消し</span></button>
+            <button class="btn-overlay" onclick="switchToOverlay()"><span>📺 オーバーレイ表示</span></button>
+        </div>
+
+        <div id="status">
+            <div class="status-line">
+                <span class="status-label">監視状態:</span>
+                <span class="status-value" id="status-monitoring">停止中</span>
+            </div>
+            <div class="status-line">
+                <span class="status-label">配信ID:</span>
+                <span class="status-value" id="status-video">未設定</span>
+            </div>
+            <div class="status-line">
+                <span class="status-label">取得コメント数:</span>
+                <span class="status-value" id="status-count">0</span>
+            </div>
+            <div class="status-line">
+                <span class="status-label">最終取得:</span>
+                <span class="status-value" id="status-last">—</span>
+            </div>
+        </div>
+
+        <div class="error-message" id="error-message"></div>
+
+        <div style="margin-top: 30px; padding: 20px; background: rgba(0, 0, 0, 0.2); border-radius: 8px; font-size: 0.85rem; color: var(--text-dim);">
+            <strong style="color: var(--accent-cool);">💡 使い方</strong><br>
+            1. 配信URLを貼り付けて「監視開始」<br>
+            2. 「オーバーレイ表示」でクロマキー用画面に切り替え<br>
+            3. OBSのブラウザソースでこのURLを追加<br>
+            4. クロマキーフィルタで背景（グリーン）を抜く<br><br>
+            <strong style="color: var(--accent-cool);">📱 スマホ操作について</strong><br>
+            • スマホでリクエストの削除操作ができます<br>
+            • PCとスマホで同じURLを開けば自動同期<br>
+            • スマホで「済」をタップ → PCの表示も即座に更新<br><br>
+            <strong style="color: var(--accent-cool);">📝 視聴者側の使い方</strong><br>
+            コメントで「<strong style="color: var(--accent-hot);">#req 曲名</strong>」と投稿すると自動抽出されます
+        </div>
+    </div>
+
+    <!-- オーバーレイ表示エリア -->
+    <div id="overlay-container">
+        <button id="mode-toggle" onclick="switchToControl()">⚙️ 設定に戻る</button>
+        <ul id="requests">
+            <!-- リクエストがここに追加される -->
+        </ul>
+    </div>
+
+    <script>
+        // ===== グローバル変数 =====
+        let monitoringInterval = null;
+        let continuation = null;
+        let apiKey = null;
+        let clientVersion = null;
+        let requestList = [];
+        let deletedHistory = [];
+        let totalCount = 0;
+        let videoId = null;
+        let syncInterval = null;
+
+        // ===== LocalStorage同期（複数デバイス対応） =====
+        const STORAGE_KEY = 'youtube_request_overlay_state';
+        
+        function saveState() {
+            try {
+                const state = {
+                    requestList: requestList,
+                    totalCount: totalCount,
+                    videoId: videoId,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            } catch (e) {
+                console.warn('LocalStorage保存失敗:', e);
+            }
+        }
+
+        function loadState() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (!saved) return false;
+                
+                const state = JSON.parse(saved);
+                
+                // 5分以内のデータのみ復元
+                if (Date.now() - state.timestamp < 5 * 60 * 1000) {
+                    requestList = state.requestList || [];
+                    totalCount = state.totalCount || 0;
+                    videoId = state.videoId || null;
+                    
+                    renderRequests();
+                    updateStatus();
+                    return true;
+                }
+            } catch (e) {
+                console.warn('LocalStorage読み込み失敗:', e);
+            }
+            return false;
+        }
+
+        // 他のタブ/デバイスでの変更を検知
+        window.addEventListener('storage', (e) => {
+            if (e.key === STORAGE_KEY) {
+                loadState();
+            }
+        });
+
+        // 定期的に状態を保存（1秒ごと）
+        function startSync() {
+            syncInterval = setInterval(() => {
+                saveState();
+            }, 1000);
+        }
+
+        function stopSync() {
+            if (syncInterval) {
+                clearInterval(syncInterval);
+                syncInterval = null;
+            }
+        }
+
+        // ===== ユーティリティ関数 =====
+        function extractVideoId(url) {
+            const patterns = [
+                /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+                /youtube\.com\/live\/([a-zA-Z0-9_-]{11})/
+            ];
+            
+            for (const pattern of patterns) {
+                const match = url.match(pattern);
+                if (match) return match[1];
+            }
+            return null;
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('error-message');
+            errorEl.textContent = message;
+            errorEl.classList.add('show');
+            setTimeout(() => errorEl.classList.remove('show'), 5000);
+        }
+
+        function updateStatus() {
+            document.getElementById('status-video').textContent = videoId || '未設定';
+            document.getElementById('status-count').textContent = totalCount;
+            document.getElementById('status-last').textContent = new Date().toLocaleTimeString('ja-JP');
+        }
+
+        // ===== YouTube InnerTube API関連 =====
+        async function getInitialParams(vid) {
+            try {
+                // CORS対策：cors-anywhere等のプロキシを使用
+                // 本番環境では自前のプロキシサーバーを推奨
+                const proxyUrl = 'https://corsproxy.io/?';
+                const targetUrl = `https://www.youtube.com/watch?v=${vid}`;
+                
+                const response = await fetch(proxyUrl + encodeURIComponent(targetUrl));
+                const html = await response.text();
+
+                // ytInitialDataを抽出
+                const ytInitialDataMatch = html.match(/var ytInitialData = ({.+?});/);
+                if (!ytInitialDataMatch) {
+                    throw new Error('ytInitialDataが見つかりません');
+                }
+                
+                const ytInitialData = JSON.parse(ytInitialDataMatch[1]);
+
+                // APIキーを抽出
+                const apiKeyMatch = html.match(/"INNERTUBE_API_KEY":"([^"]+)"/);
+                if (!apiKeyMatch) {
+                    throw new Error('APIキーが見つかりません');
+                }
+                apiKey = apiKeyMatch[1];
+
+                // clientVersionを抽出
+                const clientVersionMatch = html.match(/"clientVersion":"([^"]+)"/);
+                if (clientVersionMatch) {
+                    clientVersion = clientVersionMatch[1];
+                }
+
+                // continuationを抽出
+                const liveChatRenderer = ytInitialData?.contents?.twoColumnWatchNextResults?.conversationBar?.liveChatRenderer;
+                
+                if (!liveChatRenderer) {
+                    throw new Error('このビデオはライブ配信ではないか、チャットが無効です');
+                }
+
+                const continuations = liveChatRenderer?.continuations;
+                if (continuations && continuations.length > 0) {
+                    continuation = continuations[0]?.invalidationContinuationData?.continuation ||
+                                 continuations[0]?.timedContinuationData?.continuation;
+                }
+
+                if (!continuation) {
+                    throw new Error('continuationが見つかりません');
+                }
+
+                return true;
+            } catch (error) {
+                console.error('初期化エラー:', error);
+                showError(`初期化エラー: ${error.message}`);
+                return false;
+            }
+        }
+
+        async function pollChat() {
+            if (!continuation || !apiKey) {
+                console.error('パラメータが不足しています');
+                return;
+            }
+
+            try {
+                const proxyUrl = 'https://corsproxy.io/?';
+                const targetUrl = `https://www.youtube.com/youtubei/v1/live_chat/get_live_chat?key=${apiKey}`;
+                
+                const payload = {
+                    context: {
+                        client: {
+                            clientName: 'WEB',
+                            clientVersion: clientVersion || '2.20240101.00.00'
+                        }
+                    },
+                    continuation: continuation
+                };
+
+                const response = await fetch(proxyUrl + encodeURIComponent(targetUrl), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API呼び出し失敗: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // 次のcontinuationを更新
+                const continuationData = data?.continuationContents?.liveChatContinuation?.continuations;
+                if (continuationData && continuationData.length > 0) {
+                    continuation = continuationData[0]?.invalidationContinuationData?.continuation ||
+                                 continuationData[0]?.timedContinuationData?.continuation;
+                }
+
+                // メッセージを抽出
+                const actions = data?.continuationContents?.liveChatContinuation?.actions || [];
+                processMessages(actions);
+                
+                updateStatus();
+
+            } catch (error) {
+                console.error('ポーリングエラー:', error);
+                // エラーが発生してもポーリングは継続（一時的なネットワークエラーの可能性）
+            }
+        }
+
+        function processMessages(actions) {
+            const commandPrefix = document.getElementById('commandPrefix').value || '#req';
+            
+            actions.forEach(action => {
+                const item = action?.addChatItemAction?.item;
+                if (!item) return;
+
+                const renderer = item.liveChatTextMessageRenderer || item.liveChatPaidMessageRenderer;
+                if (!renderer) return;
+
+                // メッセージテキストを結合
+                const messageParts = renderer.message?.runs || [];
+                const messageText = messageParts
+                    .map(run => run.text || run.emoji?.shortcuts?.[0] || '')
+                    .join('')
+                    .trim();
+
+                // コマンドチェック
+                if (!messageText.startsWith(commandPrefix)) return;
+
+                // 曲名を抽出
+                const songText = messageText
+                    .substring(commandPrefix.length)
+                    .trim();
+
+                if (songText.length < 2) return; // 短すぎる場合は無視
+
+                // 投稿者名を取得
+                const authorName = renderer.authorName?.simpleText || '名無し';
+
+                // 重複チェック（同じ投稿者・同じ曲名は無視）
+                const isDuplicate = requestList.some(
+                    req => req.author === authorName && req.songText === songText
+                );
+
+                if (isDuplicate) return;
+
+                // リクエストを追加
+                const request = {
+                    id: `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                    songText: songText,
+                    author: authorName,
+                    messageId: renderer.id,
+                    timestamp: Date.now()
+                };
+
+                requestList.push(request);
+                totalCount++;
+                renderRequests();
+            });
+        }
+
+        // ===== UI制御 =====
+        function renderRequests() {
+            const container = document.getElementById('requests');
+            
+            // 表示件数制限（最大20件）
+            const displayList = requestList.slice(-20);
+            
+            if (displayList.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">🎵</div>
+                        <p>リクエスト待機中...</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = displayList.map(req => `
+                <li class="request-item" data-id="${req.id}">
+                    <div class="request-content">
+                        <div class="song-text">${escapeHtml(req.songText)}</div>
+                        <div class="author-text">リクエスト: ${escapeHtml(req.author)}</div>
+                    </div>
+                    <div class="request-actions">
+                        <button class="btn-done" onclick="removeRequest('${req.id}')">✓ 済</button>
+                    </div>
+                </li>
+            `).join('');
+            
+            // 状態を保存
+            saveState();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function removeRequest(requestId) {
+            const index = requestList.findIndex(req => req.id === requestId);
+            if (index !== -1) {
+                const removed = requestList.splice(index, 1)[0];
+                deletedHistory.push(removed);
+                renderRequests();
+            }
+        }
+
+        function undoLastDelete() {
+            if (deletedHistory.length > 0) {
+                const restored = deletedHistory.pop();
+                requestList.push(restored);
+                renderRequests();
+            }
+        }
+
+        function clearAll() {
+            if (requestList.length === 0) return;
+            
+            if (confirm('すべてのリクエストを削除しますか？')) {
+                deletedHistory = [...requestList];
+                requestList = [];
+                renderRequests();
+            }
+        }
+
+        // ===== 監視制御 =====
+        async function startMonitoring() {
+            const urlInput = document.getElementById('videoUrl').value.trim();
+            
+            if (!urlInput) {
+                showError('配信URLを入力してください');
+                return;
+            }
+
+            videoId = extractVideoId(urlInput);
+            
+            if (!videoId) {
+                showError('有効なYouTube URLを入力してください');
+                return;
+            }
+
+            // 既に監視中なら停止
+            if (monitoringInterval) {
+                stopMonitoring();
+            }
+
+            // ステータス更新
+            const statusEl = document.getElementById('status-monitoring');
+            statusEl.innerHTML = '初期化中<span class="loading"></span>';
+            statusEl.classList.add('active');
+
+            // 初期パラメータ取得
+            const success = await getInitialParams(videoId);
+            
+            if (!success) {
+                statusEl.textContent = '初期化失敗';
+                statusEl.classList.remove('active');
+                return;
+            }
+
+            // ポーリング開始
+            statusEl.textContent = '監視中 🔴';
+            monitoringInterval = setInterval(pollChat, 1500); // 1.5秒ごと
+            
+            // 同期開始
+            startSync();
+            
+            // 初回即座に実行
+            pollChat();
+        }
+
+        function stopMonitoring() {
+            if (monitoringInterval) {
+                clearInterval(monitoringInterval);
+                monitoringInterval = null;
+            }
+            
+            // 同期停止
+            stopSync();
+            
+            const statusEl = document.getElementById('status-monitoring');
+            statusEl.textContent = '停止中';
+            statusEl.classList.remove('active');
+        }
+
+        // ===== モード切り替え =====
+        function switchToOverlay() {
+            document.body.classList.remove('control-mode');
+            document.body.classList.add('overlay-mode');
+            renderRequests();
+        }
+
+        function switchToControl() {
+            document.body.classList.remove('overlay-mode');
+            document.body.classList.add('control-mode');
+        }
+
+        // ===== キーボードショートカット =====
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+Z: Undo
+            if (e.ctrlKey && e.key === 'z') {
+                e.preventDefault();
+                undoLastDelete();
+            }
+            
+            // Escape: コントロールモードに戻る
+            if (e.key === 'Escape') {
+                switchToControl();
+            }
+        });
+
+        // ===== 初期化 =====
+        console.log('YouTube Request Overlay 起動');
+        
+        // 保存された状態を復元
+        const stateRestored = loadState();
+        if (stateRestored) {
+            console.log('前回の状態を復元しました');
+        }
+        
+        renderRequests();
+    </script>
+</body>
+</html>
