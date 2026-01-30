@@ -701,14 +701,50 @@
         }
 
         // ===== YouTube InnerTube API関連 =====
+        
+        // 複数のCORSプロキシ（フォールバック方式）
+        const CORS_PROXIES = [
+            '', // プロキシなしで直接試行（一部の環境で動作する可能性）
+            'https://api.allorigins.win/raw?url=',
+            'https://cors-anywhere.herokuapp.com/',
+            'https://corsproxy.io/?'
+        ];
+        
+        let currentProxyIndex = 0;
+        
+        async function fetchWithProxy(url, options = {}) {
+            // すべてのプロキシを順番に試す
+            for (let i = 0; i < CORS_PROXIES.length; i++) {
+                const proxyIndex = (currentProxyIndex + i) % CORS_PROXIES.length;
+                const proxy = CORS_PROXIES[proxyIndex];
+                
+                try {
+                    const targetUrl = proxy ? proxy + encodeURIComponent(url) : url;
+                    console.log(`Proxy ${proxyIndex} を試行中: ${proxy || 'なし'}`);
+                    
+                    const response = await fetch(targetUrl, options);
+                    
+                    if (response.ok) {
+                        console.log(`Proxy ${proxyIndex} で成功`);
+                        currentProxyIndex = proxyIndex; // 成功したプロキシを記憶
+                        return response;
+                    }
+                    
+                    console.warn(`Proxy ${proxyIndex} が ${response.status} を返しました`);
+                } catch (error) {
+                    console.warn(`Proxy ${proxyIndex} でエラー:`, error.message);
+                }
+            }
+            
+            // すべて失敗
+            throw new Error('すべてのCORSプロキシで失敗しました。自前プロキシの使用を検討してください。');
+        }
+        
         async function getInitialParams(vid) {
             try {
-                // CORS対策：cors-anywhere等のプロキシを使用
-                // 本番環境では自前のプロキシサーバーを推奨
-                const proxyUrl = 'https://corsproxy.io/?';
                 const targetUrl = `https://www.youtube.com/watch?v=${vid}`;
                 
-                const response = await fetch(proxyUrl + encodeURIComponent(targetUrl));
+                const response = await fetchWithProxy(targetUrl);
                 const html = await response.text();
 
                 // ytInitialDataを抽出
@@ -764,7 +800,6 @@
             }
 
             try {
-                const proxyUrl = 'https://corsproxy.io/?';
                 const targetUrl = `https://www.youtube.com/youtubei/v1/live_chat/get_live_chat?key=${apiKey}`;
                 
                 const payload = {
@@ -777,7 +812,7 @@
                     continuation: continuation
                 };
 
-                const response = await fetch(proxyUrl + encodeURIComponent(targetUrl), {
+                const response = await fetchWithProxy(targetUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -806,6 +841,7 @@
 
             } catch (error) {
                 console.error('ポーリングエラー:', error);
+                showError(`チャット取得エラー: ${error.message}`);
                 // エラーが発生してもポーリングは継続（一時的なネットワークエラーの可能性）
             }
         }
