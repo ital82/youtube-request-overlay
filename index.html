@@ -230,7 +230,7 @@
     <div class="connection-panel">
         <label for="sessionIdInput">セッションID</label>
         <input type="text" id="sessionIdInput" placeholder="PCから共有されたセッションID">
-        <button class="btn-connect" onclick="joinSession()">🔗 接続</button>
+        <button class="btn-connect" id="joinSessionBtn">🔗 接続</button>
     </div>
 
     <div id="status" class="status"></div>
@@ -274,8 +274,21 @@
             setTimeout(() => joinSession(), 500);
         }
         
+        // ===== イベントリスナー設定 =====
+        document.getElementById('joinSessionBtn').addEventListener('click', joinSession);
+        
+        // 動的に追加される「済」ボタンのイベント委譲
+        document.getElementById('requests').addEventListener('click', (e) => {
+            if (e.target.classList.contains('btn-done')) {
+                const requestId = e.target.getAttribute('data-request-id');
+                if (requestId) {
+                    markAsDone(requestId);
+                }
+            }
+        });
+        
         // ===== セッションに接続 =====
-        window.joinSession = async function() {
+        async function joinSession() {
             const sessionId = document.getElementById('sessionIdInput').value.trim();
             
             if (!sessionId) {
@@ -343,13 +356,13 @@
                 <li class="request-item">
                     <div class="song-text">${escapeHtml(req.songText)}</div>
                     <div class="author-text">リクエスト: ${escapeHtml(req.author)}</div>
-                    <button class="btn-done" onclick="markAsDone('${req.id}')">✓ 済</button>
+                    <button class="btn-done" data-request-id="${escapeHtml(req.id)}">✓ 済</button>
                 </li>
             `).join('');
         }
         
         // ===== リクエストを「済」にする =====
-        window.markAsDone = async function(requestId) {
+        async function markAsDone(requestId) {
             if (!currentSessionId) return;
             
             try {
