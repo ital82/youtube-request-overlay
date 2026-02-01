@@ -3,19 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube曲リクエスト オーバーレイ</title>
+    <title>Request Manager</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --chroma-key: #00ff00;
-            --bg-dark: #1a1a2e;
-            --accent-hot: #ff006e;
-            --accent-cool: #00f5ff;
-            --text-light: #ffffff;
-            --text-dim: #a0a0b0;
-            --shadow-intense: 0 8px 32px rgba(0, 0, 0, 0.8);
+            --neon-pink: #ff0080;
+            --neon-cyan: #00ffff;
+            --dark-bg: #0a0a1a;
+            --dark-card: #151530;
+            --text-bright: #ffffff;
+            --text-dim: #8888aa;
         }
 
         * {
@@ -25,324 +24,182 @@
         }
 
         body {
-            font-family: 'Noto Sans JP', sans-serif;
-            background: var(--chroma-key);
+            font-family: 'Rajdhani', sans-serif;
+            background: var(--dark-bg);
+            color: var(--text-bright);
             min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        /* モード切り替え：コントロールパネル表示時は背景をダーク */
-        body.control-mode {
-            background: var(--bg-dark);
-        }
-
-        /* オーバーレイモード：背景をクロマキーグリーン */
-        body.overlay-mode {
-            background: var(--chroma-key);
-        }
-
-        /* コントロールパネル */
-        #control-panel {
-            max-width: 800px;
-            margin: 40px auto;
-            padding: 30px;
-            background: linear-gradient(135deg, #2a2a4e 0%, #1a1a2e 100%);
-            border-radius: 16px;
-            box-shadow: var(--shadow-intense);
-            display: none;
-        }
-
-        body.control-mode #control-panel {
-            display: block;
+            padding: 20px;
         }
 
         h1 {
-            font-family: 'Archivo Black', sans-serif;
-            font-size: 2.5rem;
-            color: var(--accent-hot);
-            margin-bottom: 10px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            font-weight: 900;
+            color: var(--neon-pink);
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: 3px;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(255, 0, 128, 0.5);
+            text-align: center;
         }
 
         .subtitle {
+            text-align: center;
+            font-size: 0.9rem;
             color: var(--text-dim);
             margin-bottom: 30px;
-            font-size: 0.95rem;
         }
 
-        .input-group {
+        .connection-panel {
+            background: var(--dark-card);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 20px;
             margin-bottom: 20px;
         }
 
-        label {
+        .connection-panel label {
             display: block;
-            color: var(--text-light);
-            margin-bottom: 8px;
-            font-weight: 700;
             font-size: 0.9rem;
+            color: var(--text-dim);
+            margin-bottom: 8px;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
 
-        input[type="text"] {
+        .connection-panel input {
             width: 100%;
-            padding: 14px 18px;
+            padding: 12px;
+            font-family: 'Rajdhani', sans-serif;
             font-size: 1rem;
-            font-family: 'Noto Sans JP', sans-serif;
-            background: rgba(255, 255, 255, 0.05);
-            border: 2px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 255, 255, 0.3);
             border-radius: 8px;
-            color: var(--text-light);
-            transition: all 0.3s ease;
+            color: var(--text-bright);
+            margin-bottom: 12px;
         }
 
-        input[type="text"]:focus {
+        .connection-panel input:focus {
             outline: none;
-            border-color: var(--accent-cool);
-            background: rgba(255, 255, 255, 0.08);
-            box-shadow: 0 0 0 4px rgba(0, 245, 255, 0.1);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
         }
 
-        input[type="text"]::placeholder {
-            color: var(--text-dim);
-        }
-
-        .button-group {
-            display: flex;
-            gap: 12px;
-            margin-top: 24px;
-            flex-wrap: wrap;
-        }
-
-        button {
-            flex: 1;
-            min-width: 140px;
-            padding: 14px 24px;
-            font-family: 'Archivo Black', sans-serif;
+        .btn-connect {
+            width: 100%;
+            padding: 14px;
+            font-family: 'Orbitron', sans-serif;
             font-size: 0.9rem;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 1.5px;
+            letter-spacing: 2px;
             border: none;
             border-radius: 8px;
             cursor: pointer;
+            background: linear-gradient(135deg, var(--neon-pink) 0%, #cc0066 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 0, 128, 0.3);
             transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
         }
 
-        button::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.3);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-        }
-
-        button:hover::before {
-            width: 300px;
-            height: 300px;
-        }
-
-        button span {
-            position: relative;
-            z-index: 1;
-        }
-
-        .btn-start {
-            background: linear-gradient(135deg, var(--accent-hot) 0%, #d90058 100%);
-            color: white;
-        }
-
-        .btn-start:hover {
+        .btn-connect:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(255, 0, 110, 0.4);
+            box-shadow: 0 6px 20px rgba(255, 0, 128, 0.5);
         }
 
-        .btn-stop {
-            background: linear-gradient(135deg, #666 0%, #444 100%);
-            color: white;
+        .btn-connect:active {
+            transform: scale(0.95);
         }
 
-        .btn-stop:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-        }
-
-        .btn-clear {
-            background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
-            color: white;
-        }
-
-        .btn-clear:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(255, 68, 68, 0.4);
-        }
-
-        .btn-overlay {
-            background: linear-gradient(135deg, var(--accent-cool) 0%, #00d4ff 100%);
-            color: #1a1a2e;
-        }
-
-        .btn-overlay:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0, 245, 255, 0.4);
-        }
-
-        #status {
-            margin-top: 24px;
-            padding: 16px;
-            background: rgba(0, 0, 0, 0.3);
+        .status {
+            text-align: center;
+            padding: 12px;
+            background: rgba(0, 255, 255, 0.1);
             border-radius: 8px;
-            border-left: 4px solid var(--accent-cool);
-        }
-
-        .status-line {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            color: var(--text-light);
-            margin: 6px 0;
-            font-size: 0.9rem;
-        }
-
-        .status-label {
-            color: var(--text-dim);
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 1px;
-        }
-
-        .status-value {
-            font-weight: 700;
-            color: var(--accent-cool);
-        }
-
-        .status-value.active {
-            color: var(--accent-hot);
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-
-        /* オーバーレイ表示エリア */
-        #overlay-container {
+            margin-bottom: 20px;
+            font-size: 0.85rem;
+            color: var(--neon-cyan);
             display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            padding: 40px;
         }
 
-        body.overlay-mode #overlay-container {
+        .status.show {
             display: block;
+        }
+
+        .status.connected {
+            background: rgba(0, 255, 136, 0.1);
+            color: #00ff88;
+        }
+
+        .status.error {
+            background: rgba(255, 68, 68, 0.1);
+            color: #ff4444;
         }
 
         #requests {
             list-style: none;
-            max-width: 1200px;
-            margin: 0 auto;
         }
 
         .request-item {
-            background: linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(42, 42, 78, 0.95) 100%);
+            background: linear-gradient(135deg, rgba(10, 10, 26, 0.95) 0%, rgba(21, 21, 48, 0.95) 100%);
             margin: 16px 0;
-            padding: 20px 24px;
+            padding: 20px;
             border-radius: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-            border-left: 6px solid var(--accent-hot);
+            border-left: 6px solid var(--neon-pink);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
             animation: slideIn 0.4s ease-out;
-            transition: all 0.3s ease;
-        }
-
-        .request-item:hover {
-            transform: translateX(8px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8);
         }
 
         @keyframes slideIn {
             from {
                 opacity: 0;
-                transform: translateX(-40px);
+                transform: translateY(-20px);
             }
             to {
                 opacity: 1;
-                transform: translateX(0);
+                transform: translateY(0);
             }
         }
 
-        .request-content {
-            flex: 1;
-        }
-
         .song-text {
-            font-family: 'Archivo Black', sans-serif;
-            font-size: 1.8rem;
-            color: var(--text-light);
-            margin-bottom: 6px;
-            letter-spacing: 0.5px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 900;
+            color: var(--text-bright);
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px rgba(255, 0, 128, 0.3);
         }
 
         .author-text {
-            font-size: 1rem;
+            font-size: 0.95rem;
             color: var(--text-dim);
-            font-weight: 400;
-        }
-
-        .request-actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn-done, .btn-undo-single {
-            padding: 10px 20px;
-            font-family: 'Archivo Black', sans-serif;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            margin-bottom: 12px;
         }
 
         .btn-done {
+            width: 100%;
+            padding: 12px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
             background: linear-gradient(135deg, #00ff88 0%, #00cc66 100%);
-            color: #1a1a2e;
+            color: #0a0a1a;
+            transition: all 0.3s ease;
         }
 
-        .btn-done:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 20px rgba(0, 255, 136, 0.4);
+        .btn-done:active {
+            transform: scale(0.95);
         }
 
-        .btn-undo-single {
-            background: linear-gradient(135deg, #ffaa00 0%, #ff8800 100%);
-            color: white;
-        }
-
-        .btn-undo-single:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 20px rgba(255, 170, 0, 0.4);
-        }
-
-        /* 空の状態メッセージ */
         .empty-state {
             text-align: center;
-            padding: 80px 20px;
+            padding: 60px 20px;
             color: var(--text-dim);
         }
 
@@ -353,789 +210,126 @@
         }
 
         .empty-state p {
-            font-size: 1.2rem;
-            font-family: 'Archivo Black', sans-serif;
+            font-size: 1.1rem;
+            font-family: 'Orbitron', sans-serif;
             text-transform: uppercase;
             letter-spacing: 2px;
         }
 
-        /* モード切り替えボタン（オーバーレイモード時に表示） */
-        #mode-toggle {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 12px 24px;
-            background: rgba(26, 26, 46, 0.9);
-            border: 2px solid var(--accent-cool);
-            border-radius: 8px;
-            color: var(--text-light);
-            font-family: 'Archivo Black', sans-serif;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: none;
-            z-index: 1000;
-        }
-
-        body.overlay-mode #mode-toggle {
-            display: block;
-        }
-
-        #mode-toggle:hover {
-            background: var(--accent-cool);
-            color: #1a1a2e;
-            transform: scale(1.05);
-        }
-
-        /* エラーメッセージ */
-        .error-message {
-            background: rgba(255, 68, 68, 0.2);
-            border: 2px solid #ff4444;
-            border-radius: 8px;
-            padding: 16px;
-            margin-top: 16px;
-            color: #ff8888;
-            font-size: 0.9rem;
-            display: none;
-        }
-
-        .error-message.show {
-            display: block;
-            animation: shake 0.5s ease;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            75% { transform: translateX(10px); }
-        }
-
-        /* プロキシセットアップガイド モーダル */
-        #proxy-guide-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 2000;
-            overflow-y: auto;
-            padding: 20px;
-        }
-
-        #proxy-guide-modal.show {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-content {
-            background: linear-gradient(135deg, #2a2a4e 0%, #1a1a2e 100%);
-            border-radius: 16px;
-            padding: 30px;
-            max-width: 700px;
-            width: 100%;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9);
-            position: relative;
-            animation: modalSlideIn 0.3s ease-out;
-        }
-
-        @keyframes modalSlideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-50px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .modal-close {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            color: var(--text-light);
-            font-size: 1.5rem;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .modal-close:hover {
-            background: var(--accent-hot);
-            transform: rotate(90deg);
-        }
-
-        .modal-content h2 {
-            font-family: 'Archivo Black', sans-serif;
-            color: var(--accent-hot);
-            font-size: 1.8rem;
-            margin-bottom: 20px;
-        }
-
-        .modal-content h3 {
-            font-family: 'Archivo Black', sans-serif;
-            color: var(--accent-cool);
-            font-size: 1.2rem;
-            margin-top: 20px;
-            margin-bottom: 10px;
-        }
-
-        .modal-content p, .modal-content li {
-            color: var(--text-light);
-            line-height: 1.6;
-            margin-bottom: 10px;
-        }
-
-        .modal-content ol {
-            margin-left: 20px;
-        }
-
-        .modal-content code {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-            color: var(--accent-cool);
-        }
-
-        .modal-content .highlight {
-            background: rgba(255, 0, 110, 0.2);
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid var(--accent-hot);
-            margin: 15px 0;
-        }
-
-        /* ローディングアニメーション */
-        .loading {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-top-color: var(--accent-cool);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin-left: 10px;
-            vertical-align: middle;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* レスポンシブ */
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 1.8rem;
-            }
-            
-            .song-text {
-                font-size: 1.4rem;
-            }
-            
-            .button-group {
-                flex-direction: column;
-            }
-            
-            button {
-                width: 100%;
-                min-height: 48px; /* タッチ操作に最適 */
-            }
-
-            #control-panel {
-                margin: 20px;
-                padding: 20px;
-            }
-
-            .request-item {
-                padding: 16px;
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .request-content {
-                width: 100%;
-                margin-bottom: 12px;
-            }
-
-            .request-actions {
-                width: 100%;
-                justify-content: stretch;
-            }
-
-            .btn-done, .btn-undo-single {
-                flex: 1;
-                min-height: 44px; /* タッチ操作に最適 */
-                font-size: 0.9rem;
-            }
-
-            #overlay-container {
-                padding: 20px 10px;
-            }
-
-            #mode-toggle {
-                top: 10px;
-                right: 10px;
-                padding: 10px 20px;
-                font-size: 0.75rem;
-            }
-
-            input[type="text"] {
-                font-size: 16px; /* iOSのズーム防止 */
-            }
-
-            .author-text {
-                font-size: 0.9rem;
-            }
-
-            .status-line {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 4px;
-            }
-        }
-
-        /* 超小型スマホ対応 */
-        @media (max-width: 480px) {
-            h1 {
-                font-size: 1.5rem;
-            }
-
-            .song-text {
-                font-size: 1.2rem;
-            }
-
-            #control-panel {
-                margin: 10px;
-                padding: 16px;
-            }
-        }
-
-        /* タッチデバイス用のホバーエフェクト無効化 */
         @media (hover: none) {
-            button:hover::before {
-                width: 0;
-                height: 0;
-            }
-
-            .request-item:hover {
+            .btn-connect:hover {
                 transform: none;
-            }
-
-            button:active {
-                transform: scale(0.95);
             }
         }
     </style>
 </head>
-<body class="control-mode">
-    <!-- コントロールパネル -->
-    <div id="control-panel">
-        <h1>🎵 Request Overlay</h1>
-        <p class="subtitle">YouTube配信の曲リクエストを自動抽出してオーバーレイ表示</p>
+<body>
+    <h1>🎵 Request Manager</h1>
+    <p class="subtitle">iPhone / iPad用リクエスト管理</p>
 
-        <div class="input-group">
-            <label for="videoUrl">配信URL</label>
-            <input type="text" id="videoUrl" placeholder="https://www.youtube.com/watch?v=... を貼り付け">
-        </div>
-
-        <div class="input-group">
-            <label for="commandPrefix">コマンド形式（デフォルト: #req）</label>
-            <input type="text" id="commandPrefix" value="#req" placeholder="#req">
-        </div>
-
-        <div class="input-group">
-            <label for="proxyUrl">
-                CORSプロキシURL（任意）
-                <span style="font-size: 0.75rem; color: var(--text-dim); font-weight: normal; margin-left: 8px;">
-                    ※ 未設定の場合は自動選択
-                </span>
-            </label>
-            <input type="text" id="proxyUrl" placeholder="https://your-worker.workers.dev/?url=">
-            <div style="margin-top: 8px; font-size: 0.8rem; color: var(--text-dim);">
-                <strong style="color: var(--accent-cool);">💡 推奨:</strong> 
-                <a href="#" onclick="showProxySetupGuide(); return false;" style="color: var(--accent-hot); text-decoration: underline;">
-                    Cloudflare Workersで自前プロキシを作成
-                </a>
-                （無料・5分で完成）
-            </div>
-        </div>
-
-        <div class="button-group">
-            <button class="btn-start" onclick="startMonitoring()"><span>🚀 監視開始</span></button>
-            <button class="btn-stop" onclick="stopMonitoring()"><span>⏸️ 停止</span></button>
-            <button class="btn-clear" onclick="clearAll()"><span>🗑️ 全消し</span></button>
-            <button class="btn-overlay" onclick="switchToOverlay()"><span>📺 オーバーレイ表示</span></button>
-        </div>
-
-        <div id="status">
-            <div class="status-line">
-                <span class="status-label">監視状態:</span>
-                <span class="status-value" id="status-monitoring">停止中</span>
-            </div>
-            <div class="status-line">
-                <span class="status-label">配信ID:</span>
-                <span class="status-value" id="status-video">未設定</span>
-            </div>
-            <div class="status-line">
-                <span class="status-label">取得コメント数:</span>
-                <span class="status-value" id="status-count">0</span>
-            </div>
-            <div class="status-line">
-                <span class="status-label">最終取得:</span>
-                <span class="status-value" id="status-last">—</span>
-            </div>
-        </div>
-
-        <div class="error-message" id="error-message"></div>
-
-        <div style="margin-top: 30px; padding: 20px; background: rgba(0, 0, 0, 0.2); border-radius: 8px; font-size: 0.85rem; color: var(--text-dim);">
-            <strong style="color: var(--accent-cool);">💡 使い方</strong><br>
-            1. 配信URLを貼り付けて「監視開始」<br>
-            2. 「オーバーレイ表示」でクロマキー用画面に切り替え<br>
-            3. OBSのブラウザソースでこのURLを追加<br>
-            4. クロマキーフィルタで背景（グリーン）を抜く<br><br>
-            <strong style="color: var(--accent-cool);">📱 スマホ操作について</strong><br>
-            • スマホでリクエストの削除操作ができます<br>
-            • PCとスマホで同じURLを開けば自動同期<br>
-            • スマホで「済」をタップ → PCの表示も即座に更新<br><br>
-            <strong style="color: var(--accent-cool);">📝 視聴者側の使い方</strong><br>
-            コメントで「<strong style="color: var(--accent-hot);">#req 曲名</strong>」と投稿すると自動抽出されます
-        </div>
+    <div class="connection-panel">
+        <label for="sessionIdInput">セッションID</label>
+        <input type="text" id="sessionIdInput" placeholder="PCから共有されたセッションID">
+        <button class="btn-connect" onclick="joinSession()">🔗 接続</button>
     </div>
 
-    <!-- オーバーレイ表示エリア -->
-    <div id="overlay-container">
-        <button id="mode-toggle" onclick="switchToControl()">⚙️ 設定に戻る</button>
-        <ul id="requests">
-            <!-- リクエストがここに追加される -->
-        </ul>
-    </div>
+    <div id="status" class="status"></div>
 
-    <!-- プロキシセットアップガイド モーダル -->
-    <div id="proxy-guide-modal">
-        <div class="modal-content">
-            <button class="modal-close" onclick="hideProxySetupGuide()">×</button>
-            <h2>🚀 CORSプロキシのセットアップ</h2>
-            
-            <p>より安定した動作のために、自分専用のCORSプロキシを作成することを強く推奨します。</p>
-            
-            <div class="highlight">
-                <strong>✅ 完全無料</strong> - Cloudflare Workersは月10万リクエストまで無料<br>
-                <strong>⏱️ 所要時間</strong> - 約5〜10分（一度だけ）<br>
-                <strong>🔒 安全</strong> - 自分専用なので安定
-            </div>
-
-            <h3>📋 手順</h3>
-            <ol>
-                <li><strong>Cloudflareアカウント作成</strong>
-                    <br><a href="https://dash.cloudflare.com/sign-up" target="_blank" style="color: var(--accent-cool);">https://dash.cloudflare.com/sign-up</a>
-                    <br>メールアドレスで無料登録（2分）
-                </li>
-                
-                <li><strong>Workerを作成</strong>
-                    <br>Workers & Pages → Create application → Create Worker
-                    <br>名前を入力（例: youtube-cors-proxy）
-                </li>
-                
-                <li><strong>コードをコピペ</strong>
-                    <br>Edit code → 既存コードを削除 → 以下をコピペ
-                    <br><code>詳細は CLOUDFLARE_WORKERS_SETUP.md を参照</code>
-                </li>
-                
-                <li><strong>Worker URLをコピー</strong>
-                    <br>デプロイ後に表示されるURL（例: <code>https://xxx.workers.dev</code>）
-                </li>
-                
-                <li><strong>このページに戻って設定</strong>
-                    <br>「CORSプロキシURL」欄に貼り付け
-                    <br>最後に <code>/?url=</code> を追加（重要！）
-                </li>
-            </ol>
-
-            <h3>📖 詳細ガイド</h3>
-            <p>詳しい手順とコードは、ダウンロードしたファイルの中の<br>
-            <strong style="color: var(--accent-hot);">CLOUDFLARE_WORKERS_SETUP.md</strong> をご覧ください。</p>
-
-            <h3>⚠️ プロキシなしでも動作を試せます</h3>
-            <p>「CORSプロキシURL」を空欄のままでも、複数の無料プロキシを自動的に試行します。<br>
-            ただし、安定性は保証できません。</p>
-
-            <button onclick="hideProxySetupGuide()" style="margin-top: 20px; width: 100%;" class="btn-overlay">
-                <span>閉じる</span>
-            </button>
+    <ul id="requests">
+        <div class="empty-state">
+            <div class="icon">📱</div>
+            <p>セッションIDを入力して接続してください</p>
         </div>
-    </div>
+    </ul>
 
-    <script>
-        // ===== グローバル変数 =====
-        let monitoringInterval = null;
-        let continuation = null;
-        let apiKey = null;
-        let clientVersion = null;
-        let requestList = [];
-        let deletedHistory = [];
-        let totalCount = 0;
-        let videoId = null;
-        let syncInterval = null;
+    <script type="module">
+        // ===== Firebase設定を読み込み =====
+        // この部分はユーザーが自分のFirebase設定に変更してください
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
 
-        // ===== LocalStorage同期（複数デバイス対応） =====
-        const STORAGE_KEY = 'youtube_request_overlay_state';
-        const PROXY_STORAGE_KEY = 'youtube_request_overlay_proxy';
+        // ===== Firebase初期化 =====
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, doc, onSnapshot, updateDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
         
-        function saveState() {
-            try {
-                const state = {
-                    requestList: requestList,
-                    totalCount: totalCount,
-                    videoId: videoId,
-                    timestamp: Date.now()
-                };
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-            } catch (e) {
-                console.warn('LocalStorage保存失敗:', e);
-            }
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        let unsubscribe = null;
+        let currentSessionId = null;
+        
+        // ===== URLパラメータからセッションIDを自動取得 =====
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionIdFromUrl = urlParams.get('session');
+        
+        if (sessionIdFromUrl) {
+            document.getElementById('sessionIdInput').value = sessionIdFromUrl;
+            // 自動接続
+            setTimeout(() => joinSession(), 500);
         }
-
-        function loadState() {
-            try {
-                const saved = localStorage.getItem(STORAGE_KEY);
-                if (!saved) return false;
-                
-                const state = JSON.parse(saved);
-                
-                // 5分以内のデータのみ復元
-                if (Date.now() - state.timestamp < 5 * 60 * 1000) {
-                    requestList = state.requestList || [];
-                    totalCount = state.totalCount || 0;
-                    videoId = state.videoId || null;
-                    
-                    renderRequests();
-                    updateStatus();
-                    return true;
-                }
-            } catch (e) {
-                console.warn('LocalStorage読み込み失敗:', e);
-            }
-            return false;
-        }
-
-        // プロキシURLの保存・読み込み
-        function saveProxyUrl(url) {
-            try {
-                localStorage.setItem(PROXY_STORAGE_KEY, url);
-                console.log('プロキシURLを保存しました:', url);
-            } catch (e) {
-                console.warn('プロキシURL保存失敗:', e);
-            }
-        }
-
-        function loadProxyUrl() {
-            try {
-                const saved = localStorage.getItem(PROXY_STORAGE_KEY);
-                if (saved) {
-                    document.getElementById('proxyUrl').value = saved;
-                    console.log('保存されたプロキシURLを読み込みました:', saved);
-                    return saved;
-                }
-            } catch (e) {
-                console.warn('プロキシURL読み込み失敗:', e);
-            }
-            return null;
-        }
-
-        // プロキシURLの変更を監視して自動保存
-        function setupProxyUrlAutoSave() {
-            const proxyInput = document.getElementById('proxyUrl');
-            proxyInput.addEventListener('change', () => {
-                const url = proxyInput.value.trim();
-                if (url) {
-                    saveProxyUrl(url);
-                }
-            });
-        }
-
-        // 他のタブ/デバイスでの変更を検知
-        window.addEventListener('storage', (e) => {
-            if (e.key === STORAGE_KEY) {
-                loadState();
-            } else if (e.key === PROXY_STORAGE_KEY) {
-                loadProxyUrl();
-            }
-        });
-
-        // 定期的に状態を保存（1秒ごと）
-        function startSync() {
-            syncInterval = setInterval(() => {
-                saveState();
-            }, 1000);
-        }
-
-        function stopSync() {
-            if (syncInterval) {
-                clearInterval(syncInterval);
-                syncInterval = null;
-            }
-        }
-
-        // ===== ユーティリティ関数 =====
-        function extractVideoId(url) {
-            const patterns = [
-                /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
-                /youtube\.com\/live\/([a-zA-Z0-9_-]{11})/
-            ];
+        
+        // ===== セッションに接続 =====
+        window.joinSession = async function() {
+            const sessionId = document.getElementById('sessionIdInput').value.trim();
             
-            for (const pattern of patterns) {
-                const match = url.match(pattern);
-                if (match) return match[1];
-            }
-            return null;
-        }
-
-        function showError(message) {
-            const errorEl = document.getElementById('error-message');
-            errorEl.textContent = message;
-            errorEl.classList.add('show');
-            setTimeout(() => errorEl.classList.remove('show'), 5000);
-        }
-
-        function updateStatus() {
-            document.getElementById('status-video').textContent = videoId || '未設定';
-            document.getElementById('status-count').textContent = totalCount;
-            document.getElementById('status-last').textContent = new Date().toLocaleTimeString('ja-JP');
-        }
-
-        // ===== YouTube InnerTube API関連 =====
-        
-        // デフォルトの無料CORSプロキシ（フォールバック用）
-        const DEFAULT_CORS_PROXIES = [
-            '', // プロキシなしで直接試行（一部の環境で動作する可能性）
-            'https://api.allorigins.win/raw?url=',
-            'https://thingproxy.freeboard.io/fetch/'
-        ];
-        
-        let currentProxyIndex = 0;
-        
-        function getCorsProxies() {
-            const userProxy = document.getElementById('proxyUrl').value.trim();
-            
-            if (userProxy) {
-                // ユーザー設定のプロキシを最優先
-                console.log('ユーザー設定のプロキシを使用:', userProxy);
-                return [userProxy, ...DEFAULT_CORS_PROXIES];
-            } else {
-                // デフォルトプロキシのみ
-                console.log('デフォルトプロキシを使用');
-                return DEFAULT_CORS_PROXIES;
-            }
-        }
-        
-        async function fetchWithProxy(url, options = {}) {
-            const proxies = getCorsProxies();
-            
-            // すべてのプロキシを順番に試す
-            for (let i = 0; i < proxies.length; i++) {
-                const proxyIndex = (currentProxyIndex + i) % proxies.length;
-                const proxy = proxies[proxyIndex];
-                
-                try {
-                    const targetUrl = proxy ? proxy + encodeURIComponent(url) : url;
-                    console.log(`Proxy ${proxyIndex} を試行中: ${proxy || 'なし'}`);
-                    
-                    const response = await fetch(targetUrl, options);
-                    
-                    if (response.ok) {
-                        console.log(`✅ Proxy ${proxyIndex} で成功`);
-                        currentProxyIndex = proxyIndex; // 成功したプロキシを記憶
-                        return response;
-                    }
-                    
-                    console.warn(`⚠️ Proxy ${proxyIndex} が ${response.status} を返しました`);
-                } catch (error) {
-                    console.warn(`❌ Proxy ${proxyIndex} でエラー:`, error.message);
-                }
-            }
-            
-            // すべて失敗
-            const errorMsg = 'すべてのCORSプロキシで失敗しました。Cloudflare Workersで自前プロキシの作成を強く推奨します。';
-            console.error(errorMsg);
-            throw new Error(errorMsg);
-        }
-        
-        async function getInitialParams(vid) {
-            try {
-                const targetUrl = `https://www.youtube.com/watch?v=${vid}`;
-                
-                const response = await fetchWithProxy(targetUrl);
-                const html = await response.text();
-
-                // ytInitialDataを抽出
-                const ytInitialDataMatch = html.match(/var ytInitialData = ({.+?});/);
-                if (!ytInitialDataMatch) {
-                    throw new Error('ytInitialDataが見つかりません');
-                }
-                
-                const ytInitialData = JSON.parse(ytInitialDataMatch[1]);
-
-                // APIキーを抽出
-                const apiKeyMatch = html.match(/"INNERTUBE_API_KEY":"([^"]+)"/);
-                if (!apiKeyMatch) {
-                    throw new Error('APIキーが見つかりません');
-                }
-                apiKey = apiKeyMatch[1];
-
-                // clientVersionを抽出
-                const clientVersionMatch = html.match(/"clientVersion":"([^"]+)"/);
-                if (clientVersionMatch) {
-                    clientVersion = clientVersionMatch[1];
-                }
-
-                // continuationを抽出
-                const liveChatRenderer = ytInitialData?.contents?.twoColumnWatchNextResults?.conversationBar?.liveChatRenderer;
-                
-                if (!liveChatRenderer) {
-                    throw new Error('このビデオはライブ配信ではないか、チャットが無効です');
-                }
-
-                const continuations = liveChatRenderer?.continuations;
-                if (continuations && continuations.length > 0) {
-                    continuation = continuations[0]?.invalidationContinuationData?.continuation ||
-                                 continuations[0]?.timedContinuationData?.continuation;
-                }
-
-                if (!continuation) {
-                    throw new Error('continuationが見つかりません');
-                }
-
-                return true;
-            } catch (error) {
-                console.error('初期化エラー:', error);
-                showError(`初期化エラー: ${error.message}`);
-                return false;
-            }
-        }
-
-        async function pollChat() {
-            if (!continuation || !apiKey) {
-                console.error('パラメータが不足しています');
+            if (!sessionId) {
+                showStatus('セッションIDを入力してください', 'error');
                 return;
             }
-
-            try {
-                const targetUrl = `https://www.youtube.com/youtubei/v1/live_chat/get_live_chat?key=${apiKey}`;
-                
-                const payload = {
-                    context: {
-                        client: {
-                            clientName: 'WEB',
-                            clientVersion: clientVersion || '2.20240101.00.00'
-                        }
-                    },
-                    continuation: continuation
-                };
-
-                const response = await fetchWithProxy(targetUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) {
-                    throw new Error(`API呼び出し失敗: ${response.status}`);
-                }
-
-                const data = await response.json();
-                
-                // 次のcontinuationを更新
-                const continuationData = data?.continuationContents?.liveChatContinuation?.continuations;
-                if (continuationData && continuationData.length > 0) {
-                    continuation = continuationData[0]?.invalidationContinuationData?.continuation ||
-                                 continuationData[0]?.timedContinuationData?.continuation;
-                }
-
-                // メッセージを抽出
-                const actions = data?.continuationContents?.liveChatContinuation?.actions || [];
-                processMessages(actions);
-                
-                updateStatus();
-
-            } catch (error) {
-                console.error('ポーリングエラー:', error);
-                showError(`チャット取得エラー: ${error.message}`);
-                // エラーが発生してもポーリングは継続（一時的なネットワークエラーの可能性）
-            }
-        }
-
-        function processMessages(actions) {
-            const commandPrefix = document.getElementById('commandPrefix').value || '#req';
             
-            actions.forEach(action => {
-                const item = action?.addChatItemAction?.item;
-                if (!item) return;
-
-                const renderer = item.liveChatTextMessageRenderer || item.liveChatPaidMessageRenderer;
-                if (!renderer) return;
-
-                // メッセージテキストを結合
-                const messageParts = renderer.message?.runs || [];
-                const messageText = messageParts
-                    .map(run => run.text || run.emoji?.shortcuts?.[0] || '')
-                    .join('')
-                    .trim();
-
-                // コマンドチェック
-                if (!messageText.startsWith(commandPrefix)) return;
-
-                // 曲名を抽出
-                const songText = messageText
-                    .substring(commandPrefix.length)
-                    .trim();
-
-                if (songText.length < 2) return; // 短すぎる場合は無視
-
-                // 投稿者名を取得
-                const authorName = renderer.authorName?.simpleText || '名無し';
-
-                // 重複チェック（同じ投稿者・同じ曲名は無視）
-                const isDuplicate = requestList.some(
-                    req => req.author === authorName && req.songText === songText
-                );
-
-                if (isDuplicate) return;
-
-                // リクエストを追加
-                const request = {
-                    id: `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                    songText: songText,
-                    author: authorName,
-                    messageId: renderer.id,
-                    timestamp: Date.now()
-                };
-
-                requestList.push(request);
-                totalCount++;
-                renderRequests();
-            });
-        }
-
-        // ===== UI制御 =====
-        function renderRequests() {
+            currentSessionId = sessionId;
+            
+            // 既存の監視を解除
+            if (unsubscribe) {
+                unsubscribe();
+            }
+            
+            showStatus('接続中...', '');
+            
+            try {
+                // セッションの存在確認
+                const docRef = doc(db, 'sessions', sessionId);
+                const docSnap = await getDoc(docRef);
+                
+                if (!docSnap.exists()) {
+                    showStatus('セッションが見つかりません。IDを確認してください。', 'error');
+                    return;
+                }
+                
+                // Firestoreをリアルタイム監視
+                unsubscribe = onSnapshot(docRef, (doc) => {
+                    if (doc.exists()) {
+                        const data = doc.data();
+                        renderRequests(data.requests || []);
+                        showStatus('接続中 🟢', 'connected');
+                    } else {
+                        showStatus('セッションが終了しました', 'error');
+                    }
+                }, (error) => {
+                    console.error('監視エラー:', error);
+                    showStatus('接続エラー: ' + error.message, 'error');
+                });
+                
+            } catch (error) {
+                console.error('接続エラー:', error);
+                showStatus('接続エラー: ' + error.message, 'error');
+            }
+        };
+        
+        // ===== リクエスト表示 =====
+        function renderRequests(requests) {
             const container = document.getElementById('requests');
             
-            // 表示件数制限（最大20件）
-            const displayList = requestList.slice(-20);
+            // 完了していないリクエストのみ表示
+            const pendingRequests = requests.filter(r => !r.status || r.status === 'pending');
             
-            if (displayList.length === 0) {
+            if (pendingRequests.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="icon">🎵</div>
@@ -1144,175 +338,56 @@
                 `;
                 return;
             }
-
-            container.innerHTML = displayList.map(req => `
-                <li class="request-item" data-id="${req.id}">
-                    <div class="request-content">
-                        <div class="song-text">${escapeHtml(req.songText)}</div>
-                        <div class="author-text">リクエスト: ${escapeHtml(req.author)}</div>
-                    </div>
-                    <div class="request-actions">
-                        <button class="btn-done" onclick="removeRequest('${req.id}')">✓ 済</button>
-                    </div>
+            
+            container.innerHTML = pendingRequests.map(req => `
+                <li class="request-item">
+                    <div class="song-text">${escapeHtml(req.songText)}</div>
+                    <div class="author-text">リクエスト: ${escapeHtml(req.author)}</div>
+                    <button class="btn-done" onclick="markAsDone('${req.id}')">✓ 済</button>
                 </li>
             `).join('');
-            
-            // 状態を保存
-            saveState();
         }
-
+        
+        // ===== リクエストを「済」にする =====
+        window.markAsDone = async function(requestId) {
+            if (!currentSessionId) return;
+            
+            try {
+                const docRef = doc(db, 'sessions', currentSessionId);
+                const docSnap = await getDoc(docRef);
+                
+                if (!docSnap.exists()) return;
+                
+                const data = docSnap.data();
+                const updatedRequests = data.requests.map(req => 
+                    req.id === requestId ? { ...req, status: 'done' } : req
+                );
+                
+                await updateDoc(docRef, { 
+                    requests: updatedRequests,
+                    updatedAt: new Date().toISOString()
+                });
+                
+                console.log('リクエスト完了:', requestId);
+            } catch (error) {
+                console.error('更新エラー:', error);
+                showStatus('更新エラー: ' + error.message, 'error');
+            }
+        };
+        
+        // ===== ステータス表示 =====
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = 'status show ' + type;
+        }
+        
+        // ===== HTML エスケープ =====
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
-
-        function removeRequest(requestId) {
-            const index = requestList.findIndex(req => req.id === requestId);
-            if (index !== -1) {
-                const removed = requestList.splice(index, 1)[0];
-                deletedHistory.push(removed);
-                renderRequests();
-            }
-        }
-
-        function undoLastDelete() {
-            if (deletedHistory.length > 0) {
-                const restored = deletedHistory.pop();
-                requestList.push(restored);
-                renderRequests();
-            }
-        }
-
-        function clearAll() {
-            if (requestList.length === 0) return;
-            
-            if (confirm('すべてのリクエストを削除しますか？')) {
-                deletedHistory = [...requestList];
-                requestList = [];
-                renderRequests();
-            }
-        }
-
-        // ===== 監視制御 =====
-        async function startMonitoring() {
-            const urlInput = document.getElementById('videoUrl').value.trim();
-            
-            if (!urlInput) {
-                showError('配信URLを入力してください');
-                return;
-            }
-
-            videoId = extractVideoId(urlInput);
-            
-            if (!videoId) {
-                showError('有効なYouTube URLを入力してください');
-                return;
-            }
-
-            // 既に監視中なら停止
-            if (monitoringInterval) {
-                stopMonitoring();
-            }
-
-            // ステータス更新
-            const statusEl = document.getElementById('status-monitoring');
-            statusEl.innerHTML = '初期化中<span class="loading"></span>';
-            statusEl.classList.add('active');
-
-            // 初期パラメータ取得
-            const success = await getInitialParams(videoId);
-            
-            if (!success) {
-                statusEl.textContent = '初期化失敗';
-                statusEl.classList.remove('active');
-                return;
-            }
-
-            // ポーリング開始
-            statusEl.textContent = '監視中 🔴';
-            monitoringInterval = setInterval(pollChat, 1500); // 1.5秒ごと
-            
-            // 同期開始
-            startSync();
-            
-            // 初回即座に実行
-            pollChat();
-        }
-
-        function stopMonitoring() {
-            if (monitoringInterval) {
-                clearInterval(monitoringInterval);
-                monitoringInterval = null;
-            }
-            
-            // 同期停止
-            stopSync();
-            
-            const statusEl = document.getElementById('status-monitoring');
-            statusEl.textContent = '停止中';
-            statusEl.classList.remove('active');
-        }
-
-        // ===== モード切り替え =====
-        function switchToOverlay() {
-            document.body.classList.remove('control-mode');
-            document.body.classList.add('overlay-mode');
-            renderRequests();
-        }
-
-        function switchToControl() {
-            document.body.classList.remove('overlay-mode');
-            document.body.classList.add('control-mode');
-        }
-
-        // ===== プロキシセットアップガイド =====
-        function showProxySetupGuide() {
-            document.getElementById('proxy-guide-modal').classList.add('show');
-        }
-
-        function hideProxySetupGuide() {
-            document.getElementById('proxy-guide-modal').classList.remove('show');
-        }
-
-        // モーダルの外側クリックで閉じる
-        document.addEventListener('click', (e) => {
-            const modal = document.getElementById('proxy-guide-modal');
-            if (e.target === modal) {
-                hideProxySetupGuide();
-            }
-        });
-
-        // ===== キーボードショートカット =====
-        document.addEventListener('keydown', (e) => {
-            // Ctrl+Z: Undo
-            if (e.ctrlKey && e.key === 'z') {
-                e.preventDefault();
-                undoLastDelete();
-            }
-            
-            // Escape: コントロールモードに戻る
-            if (e.key === 'Escape') {
-                switchToControl();
-            }
-        });
-
-        // ===== 初期化 =====
-        console.log('YouTube Request Overlay 起動');
-        
-        // 保存されたプロキシURLを復元
-        loadProxyUrl();
-        
-        // プロキシURLの自動保存を有効化
-        setupProxyUrlAutoSave();
-        
-        // 保存された状態を復元
-        const stateRestored = loadState();
-        if (stateRestored) {
-            console.log('前回の状態を復元しました');
-        }
-        
-        renderRequests();
     </script>
 </body>
 </html>
